@@ -1,8 +1,13 @@
 "use client";
 import React, { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export const SupabaseContext = React.createContext(null);
+export const SupabaseContext = React.createContext<SupabaseClient<
+  any,
+  "public",
+  any
+> | null>(null);
 
 export default function ClientRoot({
   children,

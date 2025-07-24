@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { SupabaseContext } from "../ClientRoot";
 import { SignInPage, Testimonial } from "@/components/ui/sign-in";
 import { toast } from "@/components/ui/sonner";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 const testimonials: Testimonial[] = [
   {
@@ -30,10 +31,10 @@ const heroImageSrc =
   "https://images.unsplash.com/photo-1642615835477-d303d7dc9ee9?w=2160&q=80";
 
 const LoginPage = () => {
-  const supabase = useContext(SupabaseContext);
+  const supabase = useContext(SupabaseContext) as SupabaseClient;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -42,7 +43,7 @@ const LoginPage = () => {
     };
     getUser();
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (_event: any, session: any) => {
         setUser(session?.user ?? null);
       }
     );
@@ -99,7 +100,7 @@ const LoginPage = () => {
   };
 
   const handleCreateAccount = () => {
-    toast("Account creation is not implemented yet.");
+    router.push("/signup");
   };
 
   if (user) return null;
