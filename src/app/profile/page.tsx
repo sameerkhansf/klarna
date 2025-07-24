@@ -1,7 +1,6 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabaseServer";
 import React, { useState } from "react";
-import { useUser } from "@supabase/auth-helpers-react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 const payoutOptions = [
   { label: "PayPal", value: "paypal" },
@@ -9,15 +8,10 @@ const payoutOptions = [
   { label: "Check", value: "check" },
 ];
 
-export default function ProfilePage() {
-  const user = useUser();
-  const router = useRouter();
-  useEffect(() => {
-    if (user === null) {
-      router.push("/login");
-    }
-  }, [user, router]);
-  if (!user) return null;
+export default async function ProfilePage() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) redirect("/login");
   const [method, setMethod] = useState("paypal");
   const [details, setDetails] = useState("");
 

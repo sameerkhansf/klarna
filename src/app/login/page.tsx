@@ -1,8 +1,7 @@
 "use client";
-import { useUser } from "@supabase/auth-helpers-react";
+import { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { SupabaseContext } from "../ClientRoot";
 import { SignInPage, Testimonial } from "@/components/ui/sign-in";
 import { toast } from "@/components/ui/sonner";
 
@@ -31,9 +30,26 @@ const heroImageSrc =
   "https://images.unsplash.com/photo-1642615835477-d303d7dc9ee9?w=2160&q=80";
 
 const LoginPage = () => {
-  const user = useUser();
+  const supabase = useContext(SupabaseContext);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data?.user ?? null);
+    };
+    getUser();
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   useEffect(() => {
     if (user) {
@@ -86,7 +102,6 @@ const LoginPage = () => {
     toast("Account creation is not implemented yet.");
   };
 
-  // Prevent showing the login page if already logged in
   if (user) return null;
 
   return (

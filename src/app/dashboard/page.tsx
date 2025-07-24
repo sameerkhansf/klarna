@@ -1,7 +1,6 @@
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabaseServer";
 import React from "react";
-import { useUser } from "@supabase/auth-helpers-react";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 const mockClaims = [
   { id: 1, title: "Brand X Data Breach", status: "Filed", payout: "$150" },
@@ -19,15 +18,10 @@ const statusColors: Record<string, string> = {
   Paid: "bg-green-100 text-green-800",
 };
 
-export default function DashboardPage() {
-  const user = useUser();
-  const router = useRouter();
-  useEffect(() => {
-    if (user === null) {
-      router.push("/login");
-    }
-  }, [user, router]);
-  if (!user) return null;
+export default async function DashboardPage() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) redirect("/login");
   return (
     <main className="max-w-md mx-auto pt-8 pb-20 px-4">
       <h1 className="text-2xl font-bold mb-6">Your Claims</h1>

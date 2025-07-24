@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
-import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabaseServer'
 
 export async function POST(request: NextRequest) {
+  const supabase = await createClient();
   try {
     const body = await request.json()
     const { fullName, email, address, settlementTitle, productQuantity, store, purchaseMonth, hasProof, paymentPreference, paypalEmail, venmoHandle, bankDetails } = body

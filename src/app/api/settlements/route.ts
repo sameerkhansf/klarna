@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@/lib/supabaseServer'
 
 async function firecrawlScrape(url: string, prompt?: string) {
   const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
   if (!FIRECRAWL_API_KEY) {
     return NextResponse.json({ error: 'FIRECRAWL_API_KEY is not set' }, { status: 500 })
   }
+  const supabase = await createClient();
   try {
     // 1. Scrape the main settlements page for a list of settlements and their detail URLs
     const mainPrompt = `Extract a list of all current settlements. For each, include: title, detail_url (the full URL to the settlement's detail page).`;
@@ -96,6 +97,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
   try {
     const body = await req.json();
     // Accept a single object or an array
