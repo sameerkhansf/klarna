@@ -39,7 +39,7 @@ export default function OnboardingForm() {
       first_name: "",
       middle_initial: "",
       last_name: "",
-      email: "",
+      // email: "", // Removed from form UI
       address_line1: "",
       address_line2: "",
       city: "",
@@ -52,6 +52,7 @@ export default function OnboardingForm() {
     mode: "onTouched",
   });
   const control = methods.control;
+  const [userEmail, setUserEmail] = useState("");
 
   // Pre-fill email from Supabase user if available
   useEffect(() => {
@@ -59,7 +60,8 @@ export default function OnboardingForm() {
       if (!supabase) return;
       const { data } = await supabase.auth.getUser();
       if (data?.user?.email) {
-        methods.setValue("email", data.user.email);
+        // Store email in a ref or variable for upsert, but do not set in form
+        setUserEmail(data.user.email);
       }
     }
     fetchUser();
@@ -68,11 +70,13 @@ export default function OnboardingForm() {
   }, [supabase]);
 
   const handleSubmit = async () => {
+    console.log("[Onboarding] handleSubmit called");
     setSubmitting(true);
     try {
       const { data: userData, error: userError } =
         await supabase.auth.getUser();
       if (userError || !userData?.user?.id) {
+        console.log("[Onboarding] Could not get user ID", userError);
         toast.error("Could not get user ID. Please log in again.");
         setSubmitting(false);
         return;
@@ -80,7 +84,7 @@ export default function OnboardingForm() {
       const values = methods.getValues();
       const upsertData = {
         id: userData.user.id,
-        email: values.email,
+        email: userEmail, // Use email from Supabase Auth, not from form
         first_name: values.first_name,
         middle_initial: values.middle_initial,
         last_name: values.last_name,
@@ -93,18 +97,22 @@ export default function OnboardingForm() {
         payout_preference: values.payout_preference,
         payout_identifier: values.payout_identifier,
       };
+      console.log("[Onboarding] Upserting profile:", upsertData);
       const { error } = await supabase
         .from("user_profiles")
         .upsert([upsertData], { onConflict: "id" });
       if (error) {
+        console.log("[Onboarding] Failed to save profile:", error);
         toast.error("Failed to save profile: " + error.message);
         setSubmitting(false);
         return;
       }
+      console.log("[Onboarding] Profile completed!");
       toast.success("Profile completed!");
       setSubmitted(true);
       setStep(steps.length - 1);
     } catch (e) {
+      console.log("[Onboarding] Unexpected error:", e);
       toast.error("Unexpected error. Please try again.");
     } finally {
       setSubmitting(false);
@@ -172,24 +180,7 @@ export default function OnboardingForm() {
                 </FormItem>
               )}
             />
-            <FormField
-              control={control}
-              name="email"
-              rules={{ required: "Email is required" }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="you@email.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Email field removed from UI */}
           </>
         )}
         {step === 1 && (
@@ -401,7 +392,7 @@ export default function OnboardingForm() {
               const valid = await methods.trigger([
                 "first_name",
                 "last_name",
-                "email",
+                // "email", // Removed from form UI
               ]);
               if (!valid) return;
             }
