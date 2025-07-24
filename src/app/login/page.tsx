@@ -35,6 +35,7 @@ const LoginPage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -53,10 +54,24 @@ const LoginPage = () => {
   }, [supabase]);
 
   useEffect(() => {
-    if (user) {
-      router.push("/settlements");
-    }
-  }, [user, router]);
+    const checkOnboarding = async () => {
+      if (user && supabase) {
+        const { data: profile, error: profileError } = await supabase
+          .from("user_profiles")
+          .select("id")
+          .eq("id", user.id)
+          .single();
+        if (profileError || !profile) {
+          router.push("/onboarding");
+        } else {
+          router.push("/settlements");
+        }
+        setOnboardingChecked(true);
+      }
+    };
+    checkOnboarding();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -77,7 +92,22 @@ const LoginPage = () => {
       toast.error(error.message || "Failed to sign in.");
     } else {
       toast.success("Signed in successfully!");
-      router.push("/settlements");
+      // Check onboarding after login
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData?.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from("user_profiles")
+          .select("id")
+          .eq("id", userData.user.id)
+          .single();
+        if (profileError || !profile) {
+          router.push("/onboarding");
+        } else {
+          router.push("/settlements");
+        }
+      } else {
+        router.push("/login");
+      }
     }
     setLoading(false);
   };

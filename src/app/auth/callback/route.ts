@@ -22,8 +22,21 @@ export async function GET(request: Request) {
       }
     );
     await supabase.auth.exchangeCodeForSession(code);
+    // Check onboarding after OAuth login
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData?.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from("user_profiles")
+        .select("id")
+        .eq("id", userData.user.id)
+        .single();
+      if (profileError || !profile) {
+        return NextResponse.redirect(requestUrl.origin + "/onboarding");
+      } else {
+        return NextResponse.redirect(requestUrl.origin + "/settlements");
+      }
+    }
   }
-
-  // Redirect to home or dashboard after successful login
-  return NextResponse.redirect(requestUrl.origin + '/');
+  // Redirect to login if no user
+  return NextResponse.redirect(requestUrl.origin + "/login");
 } 

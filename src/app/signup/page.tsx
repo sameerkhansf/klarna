@@ -64,7 +64,7 @@ export default function SignupPage() {
       toast.success(
         "Account created! Please check your email to verify your account."
       );
-      router.push("/settlements");
+      router.push("/onboarding");
     }
     setLoading(false);
   };

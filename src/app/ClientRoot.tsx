@@ -1,4 +1,6 @@
 "use client";
+
+"use client";
 import React, { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
