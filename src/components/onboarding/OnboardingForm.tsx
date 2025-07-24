@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
+import { useRouter } from "next/navigation";
 
 const steps = [
   "Name & Email",
@@ -53,6 +54,7 @@ export default function OnboardingForm() {
   });
   const control = methods.control;
   const [userEmail, setUserEmail] = useState("");
+  const router = useRouter();
 
   // Pre-fill email from Supabase user if available
   useEffect(() => {
@@ -68,6 +70,15 @@ export default function OnboardingForm() {
     // Only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supabase]);
+
+  useEffect(() => {
+    if (submitted) {
+      const timeout = setTimeout(() => {
+        router.push("/settlements");
+      }, 2000);
+      return () => clearTimeout(timeout);
+    }
+  }, [submitted, router]);
 
   const handleSubmit = async () => {
     console.log("[Onboarding] handleSubmit called");
@@ -384,44 +395,46 @@ export default function OnboardingForm() {
         >
           Back
         </button>
-        <button
-          type="button"
-          className="px-4 py-2 rounded bg-blue-600 text-white font-semibold"
-          onClick={async () => {
-            if (step === 0) {
-              const valid = await methods.trigger([
-                "first_name",
-                "last_name",
-                // "email", // Removed from form UI
-              ]);
-              if (!valid) return;
-            }
-            if (step === 1) {
-              const valid = await methods.trigger([
-                "address_line1",
-                "city",
-                "state",
-                "zip_code",
-              ]);
-              if (!valid) return;
-            }
-            if (step === 2) {
-              const valid = await methods.trigger(["phone_number"]);
-              if (!valid) return;
-            }
-            if (step === 3) {
-              const valid = await methods.trigger([
-                "payout_preference",
-                "payout_identifier",
-              ]);
-              if (!valid) return;
-            }
-            setStep((s) => Math.min(steps.length - 1, s + 1));
-          }}
-          disabled={submitting || submitted}
-        >
-          {step === steps.length - 2 ? "Review" : "Next"}
-        </button>
+        {!submitted && (
+          <button
+            type="button"
+            className="px-4 py-2 rounded bg-blue-600 text-white font-semibold"
+            onClick={async () => {
+              if (step === 0) {
+                const valid = await methods.trigger([
+                  "first_name",
+                  "last_name",
+                  // "email", // Removed from form UI
+                ]);
+                if (!valid) return;
+              }
+              if (step === 1) {
+                const valid = await methods.trigger([
+                  "address_line1",
+                  "city",
+                  "state",
+                  "zip_code",
+                ]);
+                if (!valid) return;
+              }
+              if (step === 2) {
+                const valid = await methods.trigger(["phone_number"]);
+                if (!valid) return;
+              }
+              if (step === 3) {
+                const valid = await methods.trigger([
+                  "payout_preference",
+                  "payout_identifier",
+                ]);
+                if (!valid) return;
+              }
+              setStep((s) => Math.min(steps.length - 1, s + 1));
+            }}
+            disabled={submitting || submitted}
+          >
+            {step === steps.length - 2 ? "Review" : "Next"}
+          </button>
+        )}
       </div>
     </Form>
   );
