@@ -1,13 +1,11 @@
-@import "tailwindcss/preflight";
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  --brand-blue: #0066ff;
-  --brand-yellow: #ffcc00;
-  --brand-white: #ffffff;
-  --brand-black: #1a1a1a;
-  --brand-light-gray: #f2f2f2;
-  /* Moved from tailwind.css: */
+@theme {
+  --color-brand-blue: #0066ff;
+  --color-brand-yellow: #ffcc00;
+  --color-brand-white: #ffffff;
+  --color-brand-black: #1a1a1a;
+  --color-brand-light-gray: #f2f2f2;
   --color-background: #ffffff;
   --color-foreground: #3E5063;
   --color-background-secondary: #f3f3f3;
@@ -47,11 +45,14 @@
   --color-text-tertiary: var(--color-gray-light);
   --color-text-danger: var(--color-danger-foreground);
   --color-text-primary: var(--color-primary);
+}
+
+:root {
   --spacing: 4px;
 }
 
 body {
-  @apply bg-brand-light-gray text-brand-black;
+  @apply bg-gray-100 text-brand-black;
   font-family: var(--font-geist-sans);
 }
 
