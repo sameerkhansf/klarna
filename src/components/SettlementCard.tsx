@@ -7,6 +7,7 @@ interface SettlementCardProps {
   payout: string;
   deadline: string;
   proofRequired: boolean;
+  claimUrl: string; // Added claimUrl prop
 }
 
 export default function SettlementCard(props: SettlementCardProps) {
@@ -28,12 +29,15 @@ export default function SettlementCard(props: SettlementCardProps) {
             </span>
           </div>
         )}
-        <button
-          onClick={() => alert(`Claiming: ${props.title}`)}
+        {/* Changed button to anchor tag for external link */}
+        <a
+          href={props.claimUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           className="btn-primary w-full"
         >
           Claim
-        </button>
+        </a>
       </div>
     </div>
   );

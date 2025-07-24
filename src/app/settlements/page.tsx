@@ -31,10 +31,10 @@ export default async function SettlementsPage() {
         ))}
       </div>
       <div className="flex flex-col gap-4">
-        {settlements.length === 0 ? (
+        {(settlements || []).length === 0 ? (
           <div>No settlements found.</div>
         ) : (
-          settlements.map((s: any) => (
+          (settlements || []).map((s: any) => (
             <SettlementCard
               key={s.id || s.title}
               title={s.title}
@@ -50,6 +50,7 @@ export default async function SettlementsPage() {
               }
               deadline={s.deadline || "N/A"}
               proofRequired={!!s.requires_proof}
+              claimUrl={s.claim_url || s.detail_url || "#"}
             />
           ))
         )}
