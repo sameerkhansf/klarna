@@ -3,6 +3,9 @@
 import React, { useState } from "react";
 import SettlementCard from "@/components/SettlementCard";
 import { Badge } from "@/components/ui/badge";
+import { useUser } from "@supabase/auth-helpers-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const mockSettlements = [
   {
@@ -40,6 +43,15 @@ const filterOptions = [
 ];
 
 export default function SettlementsPage() {
+  const user = useUser();
+  const router = useRouter();
+  useEffect(() => {
+    if (user === null) {
+      router.push("/login");
+    }
+  }, [user, router]);
+  if (!user) return null;
+
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   let filtered = mockSettlements;

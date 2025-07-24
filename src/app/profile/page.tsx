@@ -1,4 +1,7 @@
 import React, { useState } from "react";
+import { useUser } from "@supabase/auth-helpers-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const payoutOptions = [
   { label: "PayPal", value: "paypal" },
@@ -7,6 +10,14 @@ const payoutOptions = [
 ];
 
 export default function ProfilePage() {
+  const user = useUser();
+  const router = useRouter();
+  useEffect(() => {
+    if (user === null) {
+      router.push("/login");
+    }
+  }, [user, router]);
+  if (!user) return null;
   const [method, setMethod] = useState("paypal");
   const [details, setDetails] = useState("");
 

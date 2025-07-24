@@ -1,4 +1,7 @@
 import React from "react";
+import { useUser } from "@supabase/auth-helpers-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 const mockClaims = [
   { id: 1, title: "Brand X Data Breach", status: "Filed", payout: "$150" },
@@ -17,6 +20,14 @@ const statusColors: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const user = useUser();
+  const router = useRouter();
+  useEffect(() => {
+    if (user === null) {
+      router.push("/login");
+    }
+  }, [user, router]);
+  if (!user) return null;
   return (
     <main className="max-w-md mx-auto pt-8 pb-20 px-4">
       <h1 className="text-2xl font-bold mb-6">Your Claims</h1>
