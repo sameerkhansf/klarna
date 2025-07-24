@@ -1,95 +1,128 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as cheerio from 'cheerio'
 import { supabase } from '@/lib/supabaseClient'
+
+async function firecrawlScrape(url: string, prompt?: string) {
+  const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+  const body: any = {
+    url,
+    formats: ['json'],
+  };
+  if (prompt) {
+    body.jsonOptions = { prompt };
+  }
+  const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`Firecrawl error for ${url}`);
+  }
+  return response.json();
+}
 
 export async function GET(req: NextRequest) {
   const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY
-
   if (!FIRECRAWL_API_KEY) {
     return NextResponse.json({ error: 'FIRECRAWL_API_KEY is not set' }, { status: 500 })
   }
-
   try {
-    const response = await fetch('https://api.firecrawl.dev/v0/scrape', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-      },
-      body: JSON.stringify({
-        url: 'https://www.openclassactions.com/settlements.php',
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      console.error('Firecrawl API error:', errorData)
-      return NextResponse.json({ error: 'Failed to scrape settlements from Firecrawl' }, { status: response.status })
+    // 1. Scrape the main settlements page for a list of settlements and their detail URLs
+    const mainPrompt = `Extract a list of all current settlements. For each, include: title, detail_url (the full URL to the settlement's detail page).`;
+    const mainData = await firecrawlScrape('https://www.openclassactions.com/settlements.php', mainPrompt);
+    let settlementsList = mainData.data?.json?.settlements || [];
+    settlementsList = settlementsList.filter((s: any) => s.title && s.detail_url);
+    if (!settlementsList.length) {
+      return NextResponse.json({ error: 'No settlements found on main page' }, { status: 500 });
     }
-
-    const data = await response.json()
-    const htmlContent = data.data.content // Assuming content holds the scraped HTML
-
-    const $ = cheerio.load(htmlContent)
-    const settlements: any[] = []
-
-    $('div.settlement').each((i, el) => {
-      const title = $(el).find('h3 a').text().trim()
-      const deadline = $(el).find('.deadline').text().trim()
-      const payoutText = $(el).find('.payout').text().trim()
-      let payout_min: number | null = null
-      let payout_max: number | null = null
-
-      const payoutMatch = payoutText.match(/\$(\d+)(?:\s*-\s*\$(\d+))?/)
-      if (payoutMatch) {
-        payout_min = parseInt(payoutMatch[1], 10)
-        if (payoutMatch[2]) {
-          payout_max = parseInt(payoutMatch[2], 10)
+    // 2. For each settlement, scrape its detail page for richer data
+    const detailPrompt = `Extract the following: title, deadline (if available), payout_min (if available), payout_max (if available), payout_description (if available), claim_url (if available), requires_proof (true/false if available), proof_limit (if available), description (short summary of the settlement).`;
+    const results: any[] = [];
+    for (const s of settlementsList) {
+      try {
+        // Scrape detail page
+        const detailData = await firecrawlScrape(s.detail_url, detailPrompt);
+        let detail = detailData.data?.json || {};
+        // Fallbacks
+        detail.title = detail.title || s.title;
+        detail.claim_url = detail.claim_url || s.detail_url;
+        // Clean and coerce fields
+        const allowedFields = [
+          'title', 'deadline', 'payout_min', 'payout_max', 'claim_url',
+          'requires_proof', 'proof_limit', 'form_type', 'description', 'payout_description'
+        ];
+        const cleaned: any = {};
+        const extraFields: any = {};
+        for (const [key, value] of Object.entries(detail)) {
+          if (allowedFields.includes(key)) {
+            if (key === 'payout_min' || key === 'payout_max' || key === 'proof_limit') {
+              cleaned[key] = (value === '' || isNaN(Number(value))) ? null : Number(value);
+            } else if (key === 'form_type') {
+              cleaned[key] = 'pdf';
+            } else {
+              cleaned[key] = value ?? null;
+            }
+          } else {
+            extraFields[key] = value;
+          }
+        }
+        cleaned.form_type = 'pdf';
+        cleaned.fields = extraFields;
+        if (!cleaned.title || typeof cleaned.title !== 'string' || cleaned.title.trim().length === 0) {
+          results.push({ title: cleaned.title || s.title, success: false, error: 'Missing or invalid title' });
+          continue;
+        }
+        // Upsert immediately
+        const { data, error } = await supabase
+          .from('settlements')
+          .upsert([cleaned], { onConflict: 'title' });
+        if (error) {
+          results.push({ title: cleaned.title, success: false, error: error.message });
         } else {
-          payout_max = payout_min // If only one number, min and max are the same
+          results.push({ title: cleaned.title, success: true });
         }
+      } catch (e: any) {
+        results.push({ title: s.title, success: false, error: e.message });
       }
-      const claimUrl = $(el).find('h3 a').attr('href') || '#'
-
-      // Basic inference for proof requirements
-      const requiresProof = $(el).text().toLowerCase().includes('proof required')
-      const noProofNeeded = $(el).text().toLowerCase().includes('no proof needed')
-      let proofLimit: number | null = null
-
-      if (noProofNeeded) {
-        const match = $(el).text().match(/up to \$(\d+)/i)
-        if (match && match[1]) {
-          proofLimit = parseInt(match[1], 10)
-        }
-      }
-
-      settlements.push({
-        title,
-        deadline,
-        payout_min,
-        payout_max,
-        claim_url: claimUrl,
-        requires_proof: requiresProof,
-        proof_limit: proofLimit,
-        form_type: 'pdf', // Defaulting to PDF for now
-        fields: {}, // Placeholder for specific form fields
-      })
-    })
-
-    // Store in Supabase
-    const { data: insertedData, error: insertError } = await supabase
-      .from('settlements')
-      .upsert(settlements, { onConflict: 'title' })
-
-    if (insertError) {
-      console.error('Supabase insert error:', insertError)
-      return NextResponse.json({ error: 'Failed to store settlements in database' }, { status: 500 })
     }
-
-    return NextResponse.json(settlements)
-
+    return NextResponse.json({ results });
   } catch (error) {
-    console.error('Error scraping settlements:', error)
-    return NextResponse.json({ error: 'Failed to scrape settlements' }, { status: 500 })
+    console.error('Error scraping settlements:', error);
+    return NextResponse.json({ error: 'Failed to scrape settlements' }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    // Accept a single object or an array
+    let settlements = Array.isArray(body) ? body : [body];
+    settlements = settlements
+      .filter((s: any) => s.title && typeof s.title === 'string' && s.title.trim().length > 0)
+      .map((s: any) => ({
+        ...s,
+        payout_min: s.payout_min === '' ? null : Number.isFinite(Number(s.payout_min)) ? Number(s.payout_min) : null,
+        payout_max: s.payout_max === '' ? null : Number.isFinite(Number(s.payout_max)) ? Number(s.payout_max) : null,
+        proof_limit: s.proof_limit === '' ? null : Number.isFinite(Number(s.proof_limit)) ? Number(s.proof_limit) : null,
+        form_type: 'pdf',
+        fields: {},
+      }))
+    if (!settlements.length) {
+      return NextResponse.json({ error: 'No settlements provided' }, { status: 400 });
+    }
+    // Insert into Supabase
+    const { data, error } = await supabase
+      .from('settlements')
+      .insert(settlements)
+      .select();
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ data });
+  } catch (error) {
+    return NextResponse.json({ error: 'Invalid request or server error' }, { status: 500 });
   }
 }
