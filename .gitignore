@@ -1,0 +1,23 @@
+# Ignore macOS system files
+.DS_Store
+
+# Ignore node_modules
+node_modules/
+
+# Ignore build output
+.next/
+out/
+dist/
+
+# Ignore environment files
+.env*
+
+# Ignore log files
+*.log
+
+# Ignore user directories
+/Users/
+/Documents/
+
+# Ignore .cursor (AI tool state)
+.cursor/

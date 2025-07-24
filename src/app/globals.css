@@ -1,0 +1,77 @@
+@import "tailwindcss/preflight";
+@tailwind utilities;
+
+:root {
+  --brand-blue: #0066ff;
+  --brand-yellow: #ffcc00;
+  --brand-white: #ffffff;
+  --brand-black: #1a1a1a;
+  --brand-light-gray: #f2f2f2;
+  /* Moved from tailwind.css: */
+  --color-background: #ffffff;
+  --color-foreground: #3E5063;
+  --color-background-secondary: #f3f3f3;
+  --color-foreground-hover: #393939;
+  --color-primary: #FF7C00;
+  --color-primary-light: #FF9533;
+  --color-primary-dark: #E56600;
+  --color-secondary: #37ABAF;
+  --color-border: #e0e0e0;
+  --color-gray-light: #969597;
+  --color-gray-dark: #575859;
+  --color-disabled: #e6e6e6;
+  --color-danger-background: #ffedef;
+  --color-danger-background-hover: #ffdade;
+  --color-danger-foreground: #c4242a;
+  --color-warning-background: #fef3e3;
+  --color-warning-foreground: #ff9e00;
+  --color-warning-background-hover: #ffebd4;
+  --color-success-background: #e6fce6;
+  --color-success-background-hover: #cdfbcd;
+  --color-success-foreground: #34a32d;
+  --color-page-background: #fcfcfc;
+  --color-item-hover: #f8f8f8;
+  --color-item-hover-active: #f0f0f0;
+  --color-item-active: #f2f2f2;
+  --color-item-select: #f3f3f3;
+  --color-nav-item-hover: #efeeee;
+  --color-nav-item-select: var(--color-disabled);
+  --color-track-background: hsl(0 0% 89.8%);
+  --color-icon-color: var(--color-gray-dark);
+  --color-ring: var(--color-item-hover);
+  --color-popover: var(--color-background);
+  --color-popover-foreground: var(--color-foreground);
+  --color-text-default: var(--color-foreground);
+  --color-text-disabled: var(--color-gray-light);
+  --color-text-secondary: var(--color-gray-dark);
+  --color-text-tertiary: var(--color-gray-light);
+  --color-text-danger: var(--color-danger-foreground);
+  --color-text-primary: var(--color-primary);
+  --spacing: 4px;
+}
+
+body {
+  @apply bg-brand-light-gray text-brand-black;
+  font-family: var(--font-geist-sans);
+}
+
+/* Add your custom classes and keyframes here */
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-blue text-brand-white font-bold py-3 px-6 rounded-full hover:bg-blue-700 transition duration-300;
+  }
+
+  .card {
+    @apply bg-brand-white rounded-2xl shadow-lg overflow-hidden;
+  }
+
+  @keyframes pop-in {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .animate-pop-in {
+    animation: pop-in 0.5s ease-out;
+  }
+}
